@@ -456,6 +456,140 @@ namespace Microsoft.Identity.Test.Unit.RequestsTests
             }
         }
 
+        [TestMethod]
+        [TestCategory("InteractiveRequestTests")]
+        public void BrokerResponseTest()
+        {
+            using (MockHttpAndServiceBundle harness = new MockHttpAndServiceBundle())
+            {
+                AuthenticationRequestParameters parameters = harness.CreateAuthenticationRequestParameters(
+                    MsalTestConstants.AuthorityHomeTenant,
+                    MsalTestConstants.Scope,
+                    new TokenCache(harness.ServiceBundle),
+                    extraQueryParameters: MsalTestConstants.ExtraQueryParams,
+                    claims: MsalTestConstants.Claims);
+                
+                parameters.IsBrokerEnabled = true;
+
+                AcquireTokenInteractiveParameters interactiveParameters = new AcquireTokenInteractiveParameters();
+
+                InteractiveRequest request = new InteractiveRequest(
+                    harness.ServiceBundle,
+                    parameters,
+                    interactiveParameters,
+                    new MockWebUI());
+
+                var response = new MsalTokenResponse
+                {
+                    IdToken = MockHelpers.CreateIdToken(MsalTestConstants.UniqueId, MsalTestConstants.DisplayableId),
+                    AccessToken = "access-token",
+                    ClientInfo = MockHelpers.CreateClientInfo(),
+                    ExpiresIn = 3599,
+                    CorrelationId = "correlation-id",
+                    RefreshToken = "refresh-token",
+                    Scope = MsalTestConstants.Scope.AsSingleString(),
+                    TokenType = "Bearer"
+                };
+
+                request.CheckResponseFromBroker(response);
+
+                Assert.IsNotNull(request);
+            }
+        }
+
+        [TestMethod]
+        [TestCategory("InteractiveRequestTests")]
+        public void BrokerErrorResponseTest()
+        {
+            using (MockHttpAndServiceBundle harness = new MockHttpAndServiceBundle())
+            {
+                // Arrange
+                AuthenticationRequestParameters parameters = harness.CreateAuthenticationRequestParameters(
+                    MsalTestConstants.AuthorityHomeTenant,
+                    MsalTestConstants.Scope,
+                    new TokenCache(harness.ServiceBundle),
+                    extraQueryParameters: MsalTestConstants.ExtraQueryParams,
+                    claims: MsalTestConstants.Claims);
+
+                parameters.IsBrokerEnabled = true;
+
+                AcquireTokenInteractiveParameters interactiveParameters = new AcquireTokenInteractiveParameters();
+
+                InteractiveRequest request = new InteractiveRequest(
+                    harness.ServiceBundle,
+                    parameters,
+                    interactiveParameters,
+                    new MockWebUI());
+
+                var response = new MsalTokenResponse
+                {
+                    Error = "MSALErrorDomain",
+                    ErrorDescription = "error_description: Server returned less scopes than requested"
+                };
+
+                // Act
+                try
+                {
+                    request.CheckResponseFromBroker(response);
+
+                    Assert.Fail("MsalServiceException should have been thrown here");
+                }
+                // Assert
+                catch (MsalServiceException exc)
+                { 
+                    Assert.IsNotNull(exc);
+                    Assert.AreEqual(response.Error, exc.ErrorCode);
+                    Assert.AreEqual(MsalErrorMessage.BrokerResponseError + response.ErrorDescription, exc.Message);
+                }
+            }
+        }
+
+        [TestMethod]
+        [TestCategory("InteractiveRequestTests")]
+        public void BrokerUnknownErrorResponseTest()
+        {
+            using (MockHttpAndServiceBundle harness = new MockHttpAndServiceBundle())
+            {
+                AuthenticationRequestParameters parameters = harness.CreateAuthenticationRequestParameters(
+                    MsalTestConstants.AuthorityHomeTenant,
+                    MsalTestConstants.Scope,
+                    new TokenCache(harness.ServiceBundle),
+                    extraQueryParameters: MsalTestConstants.ExtraQueryParams,
+                    claims: MsalTestConstants.Claims);
+
+                parameters.IsBrokerEnabled = true;
+
+                AcquireTokenInteractiveParameters interactiveParameters = new AcquireTokenInteractiveParameters();
+
+                InteractiveRequest request = new InteractiveRequest(
+                    harness.ServiceBundle,
+                    parameters,
+                    interactiveParameters,
+                    new MockWebUI());
+
+                var response = new MsalTokenResponse
+                {
+                    Error = null,
+                    ErrorDescription = null
+                };
+
+                // Act
+                try
+                {
+                    request.CheckResponseFromBroker(response);
+
+                    Assert.Fail("MsalServiceException should have been thrown here");
+                }
+                // Assert
+                catch (MsalServiceException exc)
+                {
+                    Assert.IsNotNull(exc);
+                    Assert.AreEqual(MsalError.BrokerReponseReturnedError, exc.ErrorCode);
+                    Assert.AreEqual(MsalErrorMessage.BrokerResponseReturnedError, exc.Message);
+                }
+            }
+        }
+
         private static void MockInstanceDiscoveryAndOpenIdRequest(MockHttpManager mockHttpManager)
         {
             mockHttpManager.AddInstanceDiscoveryMockHandler();

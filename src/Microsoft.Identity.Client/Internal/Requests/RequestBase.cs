@@ -194,6 +194,11 @@ namespace Microsoft.Identity.Client.Internal.Requests
 
         protected AuthenticationResult CacheTokenResponseAndCreateAuthenticationResult(MsalTokenResponse msalTokenResponse)
         {
+            if(AuthenticationRequestParameters.IsBrokerEnabled)
+            {
+                CheckResponseFromBroker(msalTokenResponse);
+            }            
+
             // developer passed in user object.
             AuthenticationRequestParameters.RequestContext.Logger.Info("Checking client info returned from the server..");
 
@@ -232,6 +237,29 @@ namespace Microsoft.Identity.Client.Internal.Requests
                         AuthenticationRequestParameters.ClientId,
                         msalTokenResponse,
                         idToken?.TenantId));
+            }
+        }
+
+        internal void CheckResponseFromBroker(MsalTokenResponse msalTokenResponse)
+        {                
+            AuthenticationRequestParameters.RequestContext.Logger.Info(LogMessages.CheckMsalTokenResponseReturnedFromBroker);
+            if(msalTokenResponse.AccessToken != null)
+            {
+                AuthenticationRequestParameters.RequestContext.Logger.Info(
+                    LogMessages.BrokerResponseContainsAccessToken + 
+                    msalTokenResponse.AccessToken.Count());
+                return;
+            }
+            else if(msalTokenResponse.Error != null)
+            {
+                AuthenticationRequestParameters.RequestContext.Logger.Info(
+                    LogMessages.ErrorReturnedInBrokerResponse(msalTokenResponse.Error));
+                throw new MsalServiceException(msalTokenResponse.Error, MsalErrorMessage.BrokerResponseError + msalTokenResponse.ErrorDescription);
+            }
+            else
+            {
+                AuthenticationRequestParameters.RequestContext.Logger.Info(LogMessages.UnknownErrorRerturnedInBrokerResponse);
+                throw new MsalServiceException(MsalError.BrokerReponseReturnedError, MsalErrorMessage.BrokerResponseReturnedError, null);
             }
         }
 

@@ -35,6 +35,7 @@ using Microsoft.Identity.Client.ApiConfig.Parameters;
 using Microsoft.Identity.Client.Core;
 using Microsoft.Identity.Client.Exceptions;
 using Microsoft.Identity.Client.Http;
+using Microsoft.Identity.Client.Internal.Broker;
 using Microsoft.Identity.Client.OAuth2;
 using Microsoft.Identity.Client.TelemetryCore;
 using Microsoft.Identity.Client.UI;
@@ -50,6 +51,10 @@ namespace Microsoft.Identity.Client.Internal.Requests
         private string _codeVerifier;
         private string _state;
         private readonly AcquireTokenInteractiveParameters _interactiveParameters;
+        private AuthenticationRequestParameters _authenticationRequestParameters;
+        BrokerFactory brokerFactory = new BrokerFactory();
+        IBroker Broker;
+        MsalTokenResponse _msalTokenResponse;
 
         public InteractiveRequest(
             IServiceBundle serviceBundle,
@@ -58,21 +63,22 @@ namespace Microsoft.Identity.Client.Internal.Requests
             IWebUI webUi)
             : base(serviceBundle, authenticationRequestParameters, interactiveParameters)
         {
+            _authenticationRequestParameters = authenticationRequestParameters;
             _interactiveParameters = interactiveParameters;
             RedirectUriHelper.Validate(authenticationRequestParameters.RedirectUri);
             webUi?.ValidateRedirectUri(authenticationRequestParameters.RedirectUri);
 
             // todo(migration): can't this just come directly from interactive parameters instead of needing do to this?
             _extraScopesToConsent = new SortedSet<string>();
-            if (!interactiveParameters.ExtraScopesToConsent.IsNullOrEmpty())
+            if (!_interactiveParameters.ExtraScopesToConsent.IsNullOrEmpty())
             {
-                _extraScopesToConsent = ScopeHelper.CreateSortedSetFromEnumerable(interactiveParameters.ExtraScopesToConsent);
+                _extraScopesToConsent = ScopeHelper.CreateSortedSetFromEnumerable(_interactiveParameters.ExtraScopesToConsent);
             }
 
             ValidateScopeInput(_extraScopesToConsent);
 
             _webUi = webUi;
-            interactiveParameters.LogParameters(authenticationRequestParameters.RequestContext.Logger);
+            _interactiveParameters.LogParameters(_authenticationRequestParameters.RequestContext.Logger);
         }
 
         protected override void EnrichTelemetryApiEvent(ApiEvent apiEvent)
@@ -87,10 +93,10 @@ namespace Microsoft.Identity.Client.Internal.Requests
         internal override async Task<AuthenticationResult> ExecuteAsync(CancellationToken cancellationToken)
         {
             await ResolveAuthorityEndpointsAsync().ConfigureAwait(false);
-            await AcquireAuthorizationAsync().ConfigureAwait(false);
-            VerifyAuthorizationResult();
-            var msalTokenResponse = await SendTokenRequestAsync(GetBodyParameters(), cancellationToken).ConfigureAwait(false);
-            return CacheTokenResponseAndCreateAuthenticationResult(msalTokenResponse);
+
+            await CheckForBrokerAndAcquireAuthorizationAsync(cancellationToken).ConfigureAwait(false);
+
+            return CacheTokenResponseAndCreateAuthenticationResult(_msalTokenResponse);
         }
 
         private async Task AcquireAuthorizationAsync()
@@ -181,7 +187,7 @@ namespace Microsoft.Identity.Client.Internal.Requests
         }
 
         private static void CheckForDuplicateQueryParameters(
-            IDictionary<string, string> queryParamsDictionary, 
+            IDictionary<string, string> queryParamsDictionary,
             IDictionary<string, string> requestParameters)
         {
             foreach (KeyValuePair<string, string> kvp in queryParamsDictionary)
@@ -234,7 +240,7 @@ namespace Microsoft.Identity.Client.Internal.Requests
             {
                 authorizationRequestParameters[OAuth2Parameter.Prompt] = _interactiveParameters.Prompt.PromptValue;
             }
-            
+
             return authorizationRequestParameters;
         }
 
@@ -269,6 +275,30 @@ namespace Microsoft.Identity.Client.Internal.Requests
             {
                 throw new MsalServiceException(_authorizationResult.Error, _authorizationResult.ErrorDescription, null);
             }
+        }
+
+        private async Task CheckForBrokerAndAcquireAuthorizationAsync(CancellationToken cancellationToken)
+        {
+            Broker = brokerFactory.CreateBrokerFacade(ServiceBundle.DefaultLogger);
+
+            if (Broker.CanInvokeBroker(_interactiveParameters.UiParent, ServiceBundle))
+            {
+                _msalTokenResponse = await Broker.AcquireTokenUsingBrokerAsync(
+                    CreateBrokerPayload(),
+                    ServiceBundle).ConfigureAwait(false);
+            }
+            else
+            {
+                await AcquireAuthorizationAsync().ConfigureAwait(false);
+                VerifyAuthorizationResult();
+                _msalTokenResponse = await SendTokenRequestAsync(GetBodyParameters(), cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        private Dictionary<string, string> CreateBrokerPayload()
+        {
+            Dictionary<string, string> brokerPayload = _authenticationRequestParameters.CreateRequestParametersForBroker();
+            return brokerPayload;
         }
     }
 }

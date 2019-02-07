@@ -33,19 +33,18 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Identity.Client;
-using Microsoft.Identity.Client.ApiConfig;
 using Microsoft.Identity.Client.ApiConfig.Parameters;
 using Microsoft.Identity.Client.Cache;
 using Microsoft.Identity.Client.Core;
 using Microsoft.Identity.Client.Instance;
 using Microsoft.Identity.Client.Internal.Requests;
-using Microsoft.Identity.Client.OAuth2;
-using Microsoft.Identity.Client.TelemetryCore;
 using Microsoft.Identity.Client.Utils;
 using Microsoft.Identity.Test.Common;
 using Microsoft.Identity.Test.Common.Core.Helpers;
 using Microsoft.Identity.Test.Common.Core.Mocks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.Identity.Client.Internal.Broker;
+using Microsoft.Identity.Client.OAuth2;
 
 namespace Microsoft.Identity.Test.Unit.RequestsTests
 {
@@ -93,9 +92,9 @@ namespace Microsoft.Identity.Test.Unit.RequestsTests
             {
                 _tokenCacheHelper.PopulateCache(harness.Cache.Accessor);
                 var parameters = harness.CreateRequestParams(
-                    harness.Cache, 
-                    null, 
-                    MsalTestConstants.ExtraQueryParams, 
+                    harness.Cache,
+                    null,
+                    MsalTestConstants.ExtraQueryParams,
                     MsalTestConstants.Claims);
                 var silentParameters = new AcquireTokenSilentParameters();
 
@@ -196,6 +195,40 @@ namespace Microsoft.Identity.Test.Unit.RequestsTests
             }
         }
 
+        [TestMethod]
+        [Description("Test setting of the broker parameters in the BrokerSilentRequest constructor.")]
+        public void BrokerSilentRequest_CreateBrokerParametersTest()
+        {
+            using (var harness = new MockHttpTestHarness(MsalTestConstants.AuthorityHomeTenant))
+            {
+                // Arrange
+                var parameters = harness.CreateRequestParams(
+                    harness.Cache,
+                    MsalTestConstants.Scope,
+                    MsalTestConstants.ExtraQueryParams);
+
+                // Act
+                var brokerParameters = parameters.CreateSilentRequestParametersForBroker();
+
+                // Assert
+                Assert.AreEqual(11, brokerParameters.Count);
+
+                Assert.AreEqual(harness.Authority.AuthorityInfo.CanonicalAuthority, brokerParameters[BrokerParameter.Authority]);
+                Assert.AreEqual(MsalTestConstants.ScopeStr, brokerParameters[BrokerParameter.RequestScopes]);
+                Assert.AreEqual(MsalTestConstants.ClientId, brokerParameters[BrokerParameter.ClientId]);
+
+                Assert.AreEqual(harness.ServiceBundle.DefaultLogger.CorrelationId.ToString(), brokerParameters[BrokerParameter.CorrelationId]);
+                Assert.AreEqual(MsalIdHelper.GetMsalVersion(), brokerParameters[BrokerParameter.ClientVersion]);
+                Assert.AreEqual(MsalTestConstants.DisplayableId, brokerParameters[BrokerParameter.Username]);
+
+                Assert.AreEqual(MsalTestConstants.BrokerExtraQueryParameters, brokerParameters[BrokerParameter.ExtraQp]);
+
+                // Assert.AreEqual(MsalTestConstants.BrokerClaims, brokerParameters[BrokerParameter.Claims]);
+                Assert.AreEqual(BrokerParameter.OidcScopesValue, brokerParameters[BrokerParameter.ExtraOidcScopes]);
+                Assert.IsTrue(brokerParameters.ContainsKey(BrokerParameter.SilentBrokerFlow));
+            }
+        }
+
         private class MockHttpTestHarness : IDisposable
         {
             private readonly MockHttpAndServiceBundle _mockHttpAndServiceBundle;
@@ -219,9 +252,9 @@ namespace Microsoft.Identity.Test.Unit.RequestsTests
             }
 
             public AuthenticationRequestParameters CreateRequestParams(
-                ITokenCacheInternal cache, 
-                SortedSet<string> scopes, 
-                IDictionary<string, string> extraQueryParams = null, 
+                ITokenCacheInternal cache,
+                SortedSet<string> scopes,
+                IDictionary<string, string> extraQueryParams = null,
                 string claims = null)
             {
                 var commonParameters = new AcquireTokenCommonParameters
@@ -239,7 +272,7 @@ namespace Microsoft.Identity.Test.Unit.RequestsTests
                     RequestContext.CreateForTest(ServiceBundle))
                 {
                     Account = new Account(MsalTestConstants.UserIdentifier, MsalTestConstants.DisplayableId, null),
-                   
+
                 };
                 return parameters;
             }

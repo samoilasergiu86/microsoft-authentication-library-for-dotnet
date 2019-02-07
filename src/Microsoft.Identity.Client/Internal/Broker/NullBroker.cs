@@ -25,57 +25,28 @@
 // 
 // ------------------------------------------------------------------------------
 
+using Microsoft.Identity.Client.ApiConfig;
+using Microsoft.Identity.Client.Core;
+using Microsoft.Identity.Client.OAuth2;
 using System;
 using System.Collections.Generic;
-using System.Threading;
-using Microsoft.Identity.Client.UI;
+using System.Threading.Tasks;
 
-#if iOS
-using UIKit;
-#endif
-
-#if ANDROID
-using Android.App;
-#endif
-
-#if DESKTOP
-using System.Windows.Forms;
-#endif
-
-namespace Microsoft.Identity.Client.ApiConfig
+namespace Microsoft.Identity.Client.Internal.Broker
 {
     /// <summary>
-    /// Owner UI parent for the dialog in which authentication will take place.
+    /// For platforms that do not support a broker (net desktop, net core, UWP, netstandard)
     /// </summary>
-    public class OwnerUiParent
+    internal class NullBroker : IBroker
     {
-        internal CoreUIParent CoreUiParent { get; } = new CoreUIParent();
-
-#if ANDROID
-        internal void SetAndroidActivity(Activity activity)
+        public bool CanInvokeBroker(OwnerUiParent uiParent, IServiceBundle serviceBundle)
         {
-            CoreUiParent.Activity = activity;
-            CoreUiParent.CallerActivity = activity;
-        }
-#endif
-
-#if iOS
-        internal void SetUIViewController(UIViewController uiViewController)
-        {
-            CoreUiParent.CallerViewController = uiViewController;
-        }
-#endif
-
-#if DESKTOP
-        internal void SetOwnerWindow(IWin32Window ownerWindow)
-        {
-            CoreUiParent.OwnerWindow = ownerWindow;
+            return false;
         }
 
-        internal void SetOwnerWindow(IntPtr ownerWindow)
+        public Task<MsalTokenResponse> AcquireTokenUsingBrokerAsync(Dictionary<string, string> brokerPayload, IServiceBundle serviceBundle)
         {
-            CoreUiParent.OwnerWindow = ownerWindow;
+            throw new PlatformNotSupportedException(CoreErrorMessages.BrokerNotSupportedOnThisPlatform);
         }
-#endif
     }
 }

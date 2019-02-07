@@ -39,6 +39,10 @@ using Microsoft.Identity.Client.Internal.Requests;
 using Microsoft.Identity.Client.TelemetryCore;
 using Microsoft.Identity.Client.UI;
 
+#if iOS
+using Microsoft.Identity.Client.Platforms.iOS;
+#endif
+
 namespace Microsoft.Identity.Client
 {
     public partial class PublicClientApplication : IPublicClientApplicationExecutor
@@ -74,7 +78,7 @@ namespace Microsoft.Identity.Client
         /// </remarks>
         [CLSCompliant(false)]
         public AcquireTokenInteractiveParameterBuilder AcquireTokenInteractive(
-            IEnumerable<string> scopes, 
+            IEnumerable<string> scopes,
             object parent)
         {
             return AcquireTokenInteractiveParameterBuilder.Create(this, scopes, parent);
@@ -157,7 +161,6 @@ namespace Microsoft.Identity.Client
         {
             return AcquireTokenByUsernamePasswordParameterBuilder.Create(this, scopes, username, password);
         }
-
         #endregion // ParameterBuilders
 
         #region ParameterExecutors
@@ -180,6 +183,7 @@ namespace Microsoft.Identity.Client
                 CreateWebAuthenticationDialog(interactiveParameters, requestParams.RequestContext));
 
             return await handler.RunAsync(cancellationToken).ConfigureAwait(false);
+
         }
 
         async Task<AuthenticationResult> IPublicClientApplicationExecutor.ExecuteAsync(
@@ -257,7 +261,7 @@ namespace Microsoft.Identity.Client
 #endif
 
 #if WINDOWS_APP || DESKTOP
-// hidden web view can be used in both WinRT and desktop applications.
+            // hidden web view can be used in both WinRT and desktop applications.
             coreUiParent.UseHiddenBrowser = interactiveParameters.Prompt.Equals(Prompt.Never);
 #if WINDOWS_APP
             coreUiParent.UseCorporateNetwork = AppConfig.UseCorporateNetwork;

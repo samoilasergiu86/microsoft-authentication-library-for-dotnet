@@ -86,7 +86,7 @@ namespace Microsoft.Identity.Test.Unit
         public const string FamilyName = "Doe";
         public const string Username = "joe@localhost.com";
 
-        public static readonly IDictionary<string, string> ExtraQueryParams 
+        public static readonly IDictionary<string, string> ExtraQueryParams
             = new Dictionary<string, string>()
             {
                 {"extra", "qp" },
@@ -135,6 +135,9 @@ namespace Microsoft.Identity.Test.Unit
 
         public static readonly Account OnPremiseUser = new Account(
             string.Format(CultureInfo.InvariantCulture, "{0}.{1}", OnPremiseUid, OnPremiseUtid), OnPremiseDisplayableId, null);
+
+        public const string BrokerExtraQueryParameters = "extra=qp&key1=value1%20with%20encoded%20space&key2=value2";
+        public const string BrokerClaims = "testClaims";
 
 #if !ANDROID && !iOS && !WINDOWS_APP
         public static readonly ClientCredential OnPremiseCredentialWithSecret = new ClientCredential(ClientSecret);
