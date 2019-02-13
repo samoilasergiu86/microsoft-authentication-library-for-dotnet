@@ -38,6 +38,7 @@ namespace Microsoft.Identity.Client.Instance
         public const string B2CCanonicalAuthorityTemplate = "https://{0}/{1}/{2}/{3}/";
         public const string OpenIdConfigurationEndpoint = "v2.0/.well-known/openid-configuration";
         public const string B2CTrustedHost = "b2clogin.com";
+        public const string B2CChinaTrustedHost = "b2clogin.cn";
 
         internal B2CAuthority(IServiceBundle serviceBundle, string authority, bool validateAuthority)
             : base(serviceBundle, authority, validateAuthority)
@@ -80,7 +81,8 @@ namespace Microsoft.Identity.Client.Instance
 
         private bool IsB2CLoginHost(string host)
         {
-            if (host.EndsWith(B2CTrustedHost, StringComparison.OrdinalIgnoreCase))
+            if (host.EndsWith(B2CTrustedHost, StringComparison.OrdinalIgnoreCase) ||
+                host.EndsWith(B2CChinaTrustedHost, StringComparison.OrdinalIgnoreCase))
             {
                 return true;
             }
