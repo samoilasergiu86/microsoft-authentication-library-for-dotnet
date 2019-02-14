@@ -80,7 +80,7 @@ namespace Microsoft.Identity.Client
         /// <summary>
         /// Failed to acquire token silently. Used in broker scenarios.
         /// </summary>
-        public const string FailedToAcquireTokenSilently = "failed_to_acquire_token_silently";
+        public const string FailedToAcquireTokenSilentlyFromBroker = "failed_to_acquire_token_silently_from_broker";
 
         /// <summary>
         /// RedirectUri validation failed.

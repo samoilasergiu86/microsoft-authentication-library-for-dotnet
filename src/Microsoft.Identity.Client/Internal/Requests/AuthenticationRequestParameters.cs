@@ -141,7 +141,7 @@ namespace Microsoft.Identity.Client.Internal.Requests
             Dictionary<string, string> brokerPayload = new Dictionary<string, string>();
 
             brokerPayload.Add(BrokerParameter.Authority, Authority.AuthorityInfo.CanonicalAuthority);
-            string scopes = ScopeHelper.ConvertSortedSetScopesToString(Scope);
+            string scopes = EnumerableExtensions.AsSingleString(Scope);
 
             brokerPayload.Add(BrokerParameter.RequestScopes, scopes);
             brokerPayload.Add(BrokerParameter.ClientId, ClientId);

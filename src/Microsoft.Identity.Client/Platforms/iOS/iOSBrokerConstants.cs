@@ -73,5 +73,8 @@ namespace Microsoft.Identity.Client.Platforms.iOS
         public const string StartingActionViewActivity = "iOS Broker - Starting ActionView activity to ";
         public const string BrokerResponseContainsError = "Broker response contains an error. ";
         public const string ProcessBrokerResponse = "Processed iOS Broker response. Response Dictionary count: ";
+        public const string BrokerPayloadPii = "iOS Broker Payload: ";
+        public const string BrokerPayloadNoPii = "iOS Broker Payload Count: ";
+        public const string BrokerResponseValuesPii = "iOS Broker Response Values: ";
     }
 }

@@ -39,10 +39,6 @@ using Microsoft.Identity.Client.Internal.Requests;
 using Microsoft.Identity.Client.TelemetryCore;
 using Microsoft.Identity.Client.UI;
 
-#if iOS
-using Microsoft.Identity.Client.Platforms.iOS;
-#endif
-
 namespace Microsoft.Identity.Client
 {
     public partial class PublicClientApplication : IPublicClientApplicationExecutor

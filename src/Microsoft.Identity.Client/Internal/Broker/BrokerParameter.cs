@@ -38,6 +38,8 @@ namespace Microsoft.Identity.Client.Internal.Broker
         public const string BrokerKey = "broker_key";
         public const string ClientVersion = "client_version";
         public const string MsgProtocolVersion = "msg_protocol_ver";
+        public const string MsgProtocolVersion3 = "3";
+        public const string SkipCache = "YES";
 
         // not required
         public const string CorrelationId = "correlation_id";

@@ -79,7 +79,11 @@ namespace Microsoft.Identity.Client.Platforms.iOS
 
             var result = false;
 
-            if (_serviceBundle.Config.IsBrokerEnabled)
+            if (!_serviceBundle.Config.IsBrokerEnabled)
+            {
+                return result;
+            }
+            else
             {
                 _logger.Verbose(iOSBrokerConstants.CanInvokeBroker + _serviceBundle.Config.IsBrokerEnabled);
 
@@ -96,36 +100,26 @@ namespace Microsoft.Identity.Client.Platforms.iOS
             return result;
         }
 
-        public async Task<MsalTokenResponse> AcquireTokenUsingBrokerAsync(Dictionary<string, string> brokerPayload, IServiceBundle serviceBundle)
+        public async Task<MsalTokenResponse> AcquireTokenUsingBrokerAsync(Dictionary<string, string> brokerPayload)
         {
             _brokerPayload = brokerPayload;
 
-            CheckBrokerPayloadForSilentFlow();
+            AddIosSpecificParametersToPayload();
 
-            AddIosSpecificParametersToPayload();           
-
-            await InvokeIosBrokerAsync().ConfigureAwait(false);            
+            await InvokeIosBrokerAsync().ConfigureAwait(false);
 
             return ProcessBrokerResponse();
         }
 
-        private void CheckBrokerPayloadForSilentFlow()
-        {
-            if (_brokerPayload.ContainsKey(BrokerParameter.SilentBrokerFlow))
-            {
-                throw new MsalUiRequiredException(MsalError.FailedToAcquireTokenSilently, MsalErrorMessage.FailedToAcquireTokenSilently);
-            }
-        }
-
         private void AddIosSpecificParametersToPayload()
         {
-            string base64EncodedString = Base64UrlHelpers.Encode(BrokerKeyHelper.GetRawBrokerKey(_logger));
-            _brokerPayload[iOSBrokerConstants.BrokerKey] = base64EncodedString;
-            _brokerPayload[iOSBrokerConstants.MsgProtocolVer] = "3";
+            string encodedBrokerKey = Base64UrlHelpers.Encode(BrokerKeyHelper.GetRawBrokerKey(_logger));
+            _brokerPayload[iOSBrokerConstants.BrokerKey] = encodedBrokerKey;
+            _brokerPayload[iOSBrokerConstants.MsgProtocolVer] = BrokerParameter.MsgProtocolVersion3;
 
             if (_brokerPayload.ContainsKey(iOSBrokerConstants.Claims))
             {
-                _brokerPayload.Add(iOSBrokerConstants.SkipCache, "YES");
+                _brokerPayload.Add(iOSBrokerConstants.SkipCache, BrokerParameter.SkipCache);
                 string claims = Base64UrlHelpers.Encode(_brokerPayload[BrokerParameter.Claims]);
                 _brokerPayload[BrokerParameter.Claims] = claims;
             }
@@ -133,7 +127,6 @@ namespace Microsoft.Identity.Client.Platforms.iOS
 
         private async Task InvokeIosBrokerAsync()
         {
-            brokerResponse = null;
             brokerResponseReady = new SemaphoreSlim(0);
 
             if (_brokerPayload.ContainsKey(BrokerParameter.BrokerInstallUrl))
@@ -163,6 +156,8 @@ namespace Microsoft.Identity.Client.Platforms.iOS
                 _logger.Info(iOSBrokerConstants.InvokeTheIosBroker);
 
                 NSUrl url = new NSUrl(iOSBrokerConstants.InvokeBroker + _brokerPayload.ToQueryParameter());
+                _logger.VerbosePii(iOSBrokerConstants.BrokerPayloadPii + _brokerPayload.ToQueryParameter(),
+                    iOSBrokerConstants.BrokerPayloadNoPii + _brokerPayload.Count);
 
                 DispatchQueue.MainQueue.DispatchAsync(() => UIApplication.SharedApplication.OpenUrl(url));
             }
@@ -179,10 +174,13 @@ namespace Microsoft.Identity.Client.Platforms.iOS
             {
                 string[] keyValue = pair.Split('=');
                 responseDictionary[keyValue[0]] = CoreHelpers.UrlDecode(keyValue[1]);
-                if (responseDictionary[keyValue[0]].Equals("(null)", StringComparison.OrdinalIgnoreCase) && keyValue[0].Equals(iOSBrokerConstants.Code, StringComparison.OrdinalIgnoreCase))
+
+                if (responseDictionary[keyValue[0]].Equals("(null)", StringComparison.OrdinalIgnoreCase)
+                    && keyValue[0].Equals(iOSBrokerConstants.Code, StringComparison.OrdinalIgnoreCase))
                 {
                     responseDictionary[iOSBrokerConstants.Error] = iOSBrokerConstants.BrokerError;
-                    _logger.Verbose(iOSBrokerConstants.BrokerResponseContainsError);
+                    _logger.VerbosePii(iOSBrokerConstants.BrokerResponseValuesPii + keyValue.ToString(),
+                        iOSBrokerConstants.BrokerResponseContainsError);
                 }
             }
 

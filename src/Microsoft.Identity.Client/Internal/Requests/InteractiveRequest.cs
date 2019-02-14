@@ -53,8 +53,8 @@ namespace Microsoft.Identity.Client.Internal.Requests
         private readonly AcquireTokenInteractiveParameters _interactiveParameters;
         private AuthenticationRequestParameters _authenticationRequestParameters;
         BrokerFactory brokerFactory = new BrokerFactory();
-        IBroker Broker;
-        MsalTokenResponse _msalTokenResponse;
+        private IBroker Broker;
+        private MsalTokenResponse _msalTokenResponse;
 
         public InteractiveRequest(
             IServiceBundle serviceBundle,
@@ -284,8 +284,7 @@ namespace Microsoft.Identity.Client.Internal.Requests
             if (Broker.CanInvokeBroker(_interactiveParameters.UiParent, ServiceBundle))
             {
                 _msalTokenResponse = await Broker.AcquireTokenUsingBrokerAsync(
-                    CreateBrokerPayload(),
-                    ServiceBundle).ConfigureAwait(false);
+                    _authenticationRequestParameters.CreateRequestParametersForBroker()).ConfigureAwait(false);
             }
             else
             {
@@ -293,12 +292,6 @@ namespace Microsoft.Identity.Client.Internal.Requests
                 VerifyAuthorizationResult();
                 _msalTokenResponse = await SendTokenRequestAsync(GetBodyParameters(), cancellationToken).ConfigureAwait(false);
             }
-        }
-
-        private Dictionary<string, string> CreateBrokerPayload()
-        {
-            Dictionary<string, string> brokerPayload = _authenticationRequestParameters.CreateRequestParametersForBroker();
-            return brokerPayload;
         }
     }
 }
