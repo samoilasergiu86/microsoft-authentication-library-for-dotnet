@@ -279,9 +279,9 @@ namespace Microsoft.Identity.Client.Internal.Requests
 
         private async Task CheckForBrokerAndAcquireAuthorizationAsync(CancellationToken cancellationToken)
         {
-            Broker = brokerFactory.CreateBrokerFacade(ServiceBundle.DefaultLogger);
+            Broker = brokerFactory.CreateBrokerFacade(ServiceBundle);
 
-            if (Broker.CanInvokeBroker(_interactiveParameters.UiParent, ServiceBundle))
+            if (Broker.CanInvokeBroker(_interactiveParameters.UiParent))
             {
                 _msalTokenResponse = await Broker.AcquireTokenUsingBrokerAsync(
                     _authenticationRequestParameters.CreateRequestParametersForBroker()).ConfigureAwait(false);

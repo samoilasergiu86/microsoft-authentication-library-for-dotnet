@@ -93,7 +93,8 @@ namespace XForms
                 },
                 LogLevel.Verbose,
                 true)
-                .WithBroker(true);
+                .WithBroker(true)
+                .WithIosKeychainSecurityGroup("com.microsoft.adalcache");
 
             // Let Android set its own redirect uri
             switch (Device.RuntimePlatform)
@@ -105,10 +106,6 @@ namespace XForms
                     builder.WithRedirectUri(RedirectUriOnAndroid);
                     break;
             }
-
-#if BUILDENV == APPCENTER
-            builder.WithIosKeychainSecurityGroup("*");
-#endif
 
             MsalPublicClient = builder.BuildConcrete();
         }

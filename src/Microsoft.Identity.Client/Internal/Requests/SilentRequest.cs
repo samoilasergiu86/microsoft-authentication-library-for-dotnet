@@ -127,10 +127,10 @@ namespace Microsoft.Identity.Client.Internal.Requests
 
         private async Task<MsalTokenResponse> CheckForBrokerAndSendTokenRequestAsync(MsalRefreshTokenCacheItem msalRefreshTokenItem, CancellationToken cancellationToken)
         {
-            Broker = brokerFactory.CreateBrokerFacade(ServiceBundle.DefaultLogger);
+            Broker = brokerFactory.CreateBrokerFacade(ServiceBundle);
             MsalTokenResponse msalTokenResponse;
 
-            if (Broker.CanInvokeBroker(new ApiConfig.OwnerUiParent(), ServiceBundle))
+            if (Broker.CanInvokeBroker(new ApiConfig.OwnerUiParent()))
             {
                 msalTokenResponse = await Broker.AcquireTokenUsingBrokerAsync(
                     _authenticationRequestParameters.CreateSilentRequestParametersForBroker()).ConfigureAwait(false);
